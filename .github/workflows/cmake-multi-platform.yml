@@ -57,14 +57,17 @@ jobs:
           ./bootstrap-vcpkg.bat
           ./vcpkg install opencv yaml-cpp
 
-      - name: Debug Compilers
+      - name: Set reusable strings
+        id: strings
         run: |
-          echo "C Compiler: ${{ matrix.c_compiler }}"
-          echo "C++ Compiler: ${{ matrix.cpp_compiler }}"
+          echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_ENV"
+
+      - name: Create build directory
+        run: mkdir -p ${{ env.build-output-dir }}
 
       - name: Configure CMake
         run: >
-          cmake -B ${{ steps.strings.outputs.build-output-dir }}
+          cmake -B ${{ env.build-output-dir }}
           -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
           -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
@@ -72,15 +75,8 @@ jobs:
           -S ${{ github.workspace }}
 
       - name: Build
-        run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+        run: cmake --build ${{ env.build-output-dir }} --config ${{ matrix.build_type }}
 
       - name: Test
-        working-directory: ${{ steps.strings.outputs.build-output-dir }}
+        working-directory: ${{ env.build-output-dir }}
         run: ctest --build-config ${{ matrix.build_type }}
-
-      - name: Upload Build Artifacts
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: build-artifacts
-          path: ${{ steps.strings.outputs.build-output-dir }}
