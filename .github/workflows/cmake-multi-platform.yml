@@ -19,25 +19,20 @@ jobs:
         include:
           - os: windows-latest
             compiler: cl
-            cpp_compiler: cl
             c_compiler: cl
+            cpp_compiler: cl
           - os: ubuntu-latest
             compiler: gcc
-            cpp_compiler: g++
             c_compiler: gcc
+            cpp_compiler: g++
           - os: ubuntu-latest
             compiler: clang
-            cpp_compiler: clang++
             c_compiler: clang
+            cpp_compiler: clang++
           - os: macos-latest
             compiler: clang
-            cpp_compiler: clang++
             c_compiler: clang
-        exclude:
-          - os: windows-latest
-            compiler: gcc
-          - os: windows-latest
-            compiler: clang
+            cpp_compiler: clang++
 
     steps:
       - uses: actions/checkout@v4
@@ -46,7 +41,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libopencv-dev libyaml-cpp-dev
+          sudo apt-get install -y libopencv-dev libyaml-cpp-dev build-essential gcc g++ clang
 
       - name: Install Dependencies on macOS
         if: matrix.os == 'macos-latest'
