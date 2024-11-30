@@ -23,16 +23,16 @@ jobs:
             cpp_compiler: cl
           - os: ubuntu-latest
             compiler: gcc
-            c_compiler: gcc
-            cpp_compiler: g++
+            c_compiler: /usr/bin/gcc
+            cpp_compiler: /usr/bin/g++
           - os: ubuntu-latest
             compiler: clang
-            c_compiler: clang
-            cpp_compiler: clang++
+            c_compiler: /usr/bin/clang
+            cpp_compiler: /usr/bin/clang++
           - os: macos-latest
             compiler: clang
-            c_compiler: clang
-            cpp_compiler: clang++
+            c_compiler: /usr/bin/clang
+            cpp_compiler: /usr/bin/clang++
 
     steps:
       - uses: actions/checkout@v4
@@ -41,7 +41,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libopencv-dev libyaml-cpp-dev build-essential gcc g++ clang
+          sudo apt-get install -y build-essential gcc g++ clang libopencv-dev libyaml-cpp-dev
 
       - name: Install Dependencies on macOS
         if: matrix.os == 'macos-latest'
@@ -57,11 +57,10 @@ jobs:
           ./bootstrap-vcpkg.bat
           ./vcpkg install opencv yaml-cpp
 
-      - name: Set reusable strings
-        id: strings
-        shell: bash
+      - name: Debug Compilers
         run: |
-          echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+          echo "C Compiler: ${{ matrix.c_compiler }}"
+          echo "C++ Compiler: ${{ matrix.cpp_compiler }}"
 
       - name: Configure CMake
         run: >
