@@ -14,29 +14,30 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+        compiler: [gcc, clang, cl]
         build_type: [Release, Debug]
         include:
           - os: windows-latest
-            c_compiler: cl
+            compiler: cl
             cpp_compiler: cl
+            c_compiler: cl
           - os: ubuntu-latest
-            c_compiler: gcc
+            compiler: gcc
             cpp_compiler: g++
+            c_compiler: gcc
           - os: ubuntu-latest
-            c_compiler: clang
+            compiler: clang
             cpp_compiler: clang++
+            c_compiler: clang
           - os: macos-latest
-            c_compiler: clang
+            compiler: clang
             cpp_compiler: clang++
+            c_compiler: clang
         exclude:
           - os: windows-latest
-            c_compiler: gcc
+            compiler: gcc
           - os: windows-latest
-            c_compiler: clang
-          - os: ubuntu-latest
-            c_compiler: cl
-          - os: macos-latest
-            c_compiler: gcc
+            compiler: clang
 
     steps:
       - uses: actions/checkout@v4
