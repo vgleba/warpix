@@ -23,39 +23,59 @@ jobs:
                       cpp_compiler: cl
                     - os: ubuntu-latest
                       compiler: gcc
-                      c_compiler: gcc
-                      cpp_compiler: g++
+                      c_compiler: /usr/bin/gcc
+                      cpp_compiler: /usr/bin/g++
                     - os: ubuntu-latest
                       compiler: clang
-                      c_compiler: clang
-                      cpp_compiler: clang++
+                      c_compiler: /usr/bin/clang
+                      cpp_compiler: /usr/bin/clang++
                     - os: macos-latest
                       compiler: clang
-                      c_compiler: clang
-                      cpp_compiler: clang++
+                      c_compiler: /usr/bin/clang
+                      cpp_compiler: /usr/bin/clang++
 
         steps:
             - uses: actions/checkout@v4
 
-            - name: Debug Matrix Values
-              run: env
+            - name: Debug Matrix Variables
+              run: |
+                  echo "Operating System: ${{ matrix.os }}"
+                  echo "C Compiler: ${{ matrix.c_compiler }}"
+                  echo "C++ Compiler: ${{ matrix.cpp_compiler }}"
+                  echo "Build Type: ${{ matrix.build_type }}"
+
+            - name: Install Dependencies on Ubuntu
+              if: matrix.os == 'ubuntu-latest'
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y build-essential gcc g++ clang libopencv-dev libyaml-cpp-dev
+
+            - name: Install Dependencies on macOS
+              if: matrix.os == 'macos-latest'
+              run: |
+                  brew update
+                  brew install opencv yaml-cpp
+
+            - name: Install Dependencies on Windows
+              if: matrix.os == 'windows-latest'
+              run: |
+                  git clone https://github.com/microsoft/vcpkg.git
+                  cd vcpkg
+                  ./bootstrap-vcpkg.bat
+                  ./vcpkg install opencv yaml-cpp
 
             - name: Set Default Compilers
               run: |
-                  if [ -z "${{ matrix.c_compiler }}" ]; then
-                    echo "Using default C compiler: gcc"
+                  export CC=${{ matrix.c_compiler }}
+                  export CXX=${{ matrix.cpp_compiler }}
+                  if [ -z "$CC" ]; then
+                    echo "C Compiler is empty, setting default gcc"
                     export CC=gcc
-                  else
-                    export CC=${{ matrix.c_compiler }}
                   fi
-                  
-                  if [ -z "${{ matrix.cpp_compiler }}" ]; then
-                    echo "Using default C++ compiler: g++"
+                  if [ -z "$CXX" ]; then
+                    echo "C++ Compiler is empty, setting default g++"
                     export CXX=g++
-                  else
-                    export CXX=${{ matrix.cpp_compiler }}
                   fi
-                  
                   echo "C Compiler: $CC"
                   echo "C++ Compiler: $CXX"
 
@@ -66,13 +86,13 @@ jobs:
               run: mkdir -p ${{ env.build-output-dir }}
 
             - name: Configure CMake
-              run: >
-                  cmake -B ${{ env.build-output-dir }}
-                  -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
-                  -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
-                  -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-                  -DCMAKE_PREFIX_PATH=/opt/homebrew;/usr/local/vcpkg/installed/x64-windows
-                  -S ${{ github.workspace }}
+              run: |
+                  cmake -B ${{ env.build-output-dir }} \
+                    -DCMAKE_CXX_COMPILER=$CXX \
+                    -DCMAKE_C_COMPILER=$CC \
+                    -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+                    -DCMAKE_PREFIX_PATH=/opt/homebrew;/usr/local/vcpkg/installed/x64-windows \
+                    -S ${{ github.workspace }}
 
             - name: Build
               run: cmake --build ${{ env.build-output-dir }} --config ${{ matrix.build_type }}
