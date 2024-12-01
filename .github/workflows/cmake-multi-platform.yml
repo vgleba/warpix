@@ -1,85 +1,82 @@
 name: CMake on multiple platforms
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    push:
+        branches: [ "main" ]
+    pull_request:
+        branches: [ "main" ]
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
+    build:
+        runs-on: ${{ matrix.os }}
 
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest ]
-        compiler: [ gcc, clang, cl ]
-        build_type: [ Release, Debug ]
-        include:
-          - os: windows-latest
-            compiler: cl
-            c_compiler: cl
-            cpp_compiler: cl
-          - os: ubuntu-latest
-            compiler: gcc
-            c_compiler: /usr/bin/gcc
-            cpp_compiler: /usr/bin/g++
-          - os: ubuntu-latest
-            compiler: clang
-            c_compiler: /usr/bin/clang
-            cpp_compiler: /usr/bin/clang++
-          - os: macos-latest
-            compiler: clang
-            c_compiler: /usr/bin/clang
-            cpp_compiler: /usr/bin/clang++
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [ubuntu-latest, windows-latest, macos-latest]
+                compiler: [gcc, clang, cl]
+                build_type: [Release, Debug]
+                include:
+                    - os: windows-latest
+                      compiler: cl
+                      c_compiler: cl
+                      cpp_compiler: cl
+                    - os: ubuntu-latest
+                      compiler: gcc
+                      c_compiler: gcc
+                      cpp_compiler: g++
+                    - os: ubuntu-latest
+                      compiler: clang
+                      c_compiler: clang
+                      cpp_compiler: clang++
+                    - os: macos-latest
+                      compiler: clang
+                      c_compiler: clang
+                      cpp_compiler: clang++
 
-    steps:
-      - uses: actions/checkout@v4
+        steps:
+            - uses: actions/checkout@v4
 
-      - name: Install Dependencies on Ubuntu
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential gcc g++ clang libopencv-dev libyaml-cpp-dev
+            - name: Debug Matrix Values
+              run: env
 
-      - name: Install Dependencies on macOS
-        if: matrix.os == 'macos-latest'
-        run: |
-          brew update
-          brew install opencv yaml-cpp
+            - name: Set Default Compilers
+              run: |
+                  if [ -z "${{ matrix.c_compiler }}" ]; then
+                    echo "Using default C compiler: gcc"
+                    export CC=gcc
+                  else
+                    export CC=${{ matrix.c_compiler }}
+                  fi
+                  
+                  if [ -z "${{ matrix.cpp_compiler }}" ]; then
+                    echo "Using default C++ compiler: g++"
+                    export CXX=g++
+                  else
+                    export CXX=${{ matrix.cpp_compiler }}
+                  fi
+                  
+                  echo "C Compiler: $CC"
+                  echo "C++ Compiler: $CXX"
 
-      - name: Install Dependencies on Windows
-        if: matrix.os == 'windows-latest'
-        run: |
-          git clone https://github.com/microsoft/vcpkg.git
-          cd vcpkg
-          ./bootstrap-vcpkg.bat
-          ./vcpkg install opencv yaml-cpp
+            - name: Set Build Directory
+              run: echo "build-output-dir=${{ github.workspace }}/build" >> $GITHUB_ENV
 
-      - name: Debug Compiler Variables
-        run: |
-          echo "C Compiler: ${{ matrix.c_compiler }}"
-          echo "C++ Compiler: ${{ matrix.cpp_compiler }}"
+            - name: Create Build Directory
+              run: mkdir -p ${{ env.build-output-dir }}
 
-      - name: Set Build Directory
-        run: echo "build-output-dir=${{ github.workspace }}/build" >> $GITHUB_ENV
+            - name: Configure CMake
+              run: >
+                  cmake -B ${{ env.build-output-dir }}
+                  -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
+                  -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+                  -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+                  -DCMAKE_PREFIX_PATH=/opt/homebrew;/usr/local/vcpkg/installed/x64-windows
+                  -S ${{ github.workspace }}
 
-      - name: Create Build Directory
-        run: mkdir -p ${{ env.build-output-dir }}
+            - name: Build
+              run: cmake --build ${{ env.build-output-dir }} --config ${{ matrix.build_type }}
 
-      - name: Configure CMake
-        run: >
-          cmake -B ${{ env.build-output-dir }}
-          -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
-          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-          -DCMAKE_PREFIX_PATH=/opt/homebrew;/usr/local/vcpkg/installed/x64-windows
-          -S ${{ github.workspace }}
-
-      - name: Build
-        run: cmake --build ${{ env.build-output-dir }} --config ${{ matrix.build_type }}
-
-      - name: Test
-        working-directory: ${{ env.build-output-dir }}
-        run: ctest --build-config ${{ matrix.build_type }}
+            - name: Test
+              working-directory: ${{ env.build-output-dir }}
+              run: ctest --build-config ${{ matrix.build_type }}
