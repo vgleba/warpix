@@ -13,9 +13,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        compiler: [gcc, clang, cl]
-        build_type: [Release, Debug]
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        compiler: [ gcc, clang, cl ]
+        build_type: [ Release, Debug ]
         include:
           - os: windows-latest
             compiler: cl
@@ -57,12 +57,15 @@ jobs:
           ./bootstrap-vcpkg.bat
           ./vcpkg install opencv yaml-cpp
 
-      - name: Set reusable strings
-        id: strings
+      - name: Debug Compiler Variables
         run: |
-          echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_ENV"
+          echo "C Compiler: ${{ matrix.c_compiler }}"
+          echo "C++ Compiler: ${{ matrix.cpp_compiler }}"
 
-      - name: Create build directory
+      - name: Set Build Directory
+        run: echo "build-output-dir=${{ github.workspace }}/build" >> $GITHUB_ENV
+
+      - name: Create Build Directory
         run: mkdir -p ${{ env.build-output-dir }}
 
       - name: Configure CMake
